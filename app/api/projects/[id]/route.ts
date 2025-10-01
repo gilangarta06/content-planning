@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { ObjectId } from "mongodb";
+import { ObjectId, PullOperator } from "mongodb";
 
-export async function GET(req: Request, { params }: { params: { id: string } }) {
+export async function GET(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const client = await clientPromise;
     const db = client.db("mydb");
 
-    const project = await db.collection("projects").findOne({ _id: new ObjectId(params.id) });
+    const project = await db
+      .collection("projects")
+      .findOne({ _id: new ObjectId(params.id) });
 
     if (!project) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -19,22 +24,30 @@ export async function GET(req: Request, { params }: { params: { id: string } }) 
       description: project.description,
       platform: project.platform,
       createdAt: project.createdAt,
-      contents: project.contents || []
+      contents: project.contents || [],
     });
   } catch (error) {
     console.error("Error fetching project:", error);
-    return NextResponse.json({ error: "Failed to fetch project" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch project" },
+      { status: 500 }
+    );
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const body = await req.json();
 
     const client = await clientPromise;
     const db = client.db("mydb");
 
-    const project = await db.collection("projects").findOne({ _id: new ObjectId(params.id) });
+    const project = await db
+      .collection("projects")
+      .findOne({ _id: new ObjectId(params.id) });
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
@@ -55,8 +68,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
         { _id: new ObjectId(params.id), "contents.id": body.contentId },
         {
           $set: Object.fromEntries(
-            Object.entries(body.updates).map(([k, v]) => [`contents.$.${k}`, v])
-          )
+            Object.entries(body.updates).map(([k, v]) => [
+              `contents.$.${k}`,
+              v,
+            ])
+          ),
         }
       );
 
@@ -64,9 +80,11 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     }
 
     if (body.action === "deleteContent") {
+      const pullOp: PullOperator<any> = { contents: { id: body.contentId } };
+
       await db.collection("projects").updateOne(
         { _id: new ObjectId(params.id) },
-        { $pull: { contents: { id: body.contentId } } }
+        { $pull: pullOp }
       );
 
       return NextResponse.json({ success: true });
@@ -75,16 +93,24 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     return NextResponse.json({ error: "Invalid action" }, { status: 400 });
   } catch (error) {
     console.error("Error updating project:", error);
-    return NextResponse.json({ error: "Failed to update project" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to update project" },
+      { status: 500 }
+    );
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(
+  req: Request,
+  { params }: { params: { id: string } }
+) {
   try {
     const client = await clientPromise;
     const db = client.db("mydb");
 
-    const result = await db.collection("projects").deleteOne({ _id: new ObjectId(params.id) });
+    const result = await db
+      .collection("projects")
+      .deleteOne({ _id: new ObjectId(params.id) });
 
     if (result.deletedCount === 0) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
@@ -93,6 +119,9 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting project:", error);
-    return NextResponse.json({ error: "Failed to delete project" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to delete project" },
+      { status: 500 }
+    );
   }
 }
