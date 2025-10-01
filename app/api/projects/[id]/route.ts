@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import clientPromise from "@/lib/mongodb";
-import { ObjectId, PullOperator } from "mongodb";
+import { ObjectId } from "mongodb";
 
 export async function GET(
   req: Request,
@@ -48,6 +48,7 @@ export async function PUT(
     const project = await db
       .collection("projects")
       .findOne({ _id: new ObjectId(params.id) });
+
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
@@ -80,11 +81,9 @@ export async function PUT(
     }
 
     if (body.action === "deleteContent") {
-      const pullOp: PullOperator<any> = { contents: { id: body.contentId } };
-
       await db.collection("projects").updateOne(
         { _id: new ObjectId(params.id) },
-        { $pull: pullOp }
+        { $pull: { contents: { id: body.contentId } } as any }
       );
 
       return NextResponse.json({ success: true });
