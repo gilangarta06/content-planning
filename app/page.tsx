@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Sidebar } from '@/components/Sidebar';
-import { ContentTable } from '@/components/ContentTable';
-import { PlatformSelector } from '@/components/PlatformSelector';
+import { Sidebar } from '@/components/content/Sidebar';
+import { ContentTable } from '@/components/content/ContentTable';
+import { PlatformSelector } from '@/components/content/PlatformSelector';
 import { Project, Platform, AppState } from '@/lib/types';
 
 export default function Home() {
